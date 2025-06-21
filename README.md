@@ -180,7 +180,7 @@ CREATE TABLE imu_data (
 
 ### Backend Issues
 
-- **Port 5000 in use**: Change port in `app.py`
+- **Port 6000 in use**: Change port in `app.py`
 - **Database errors**: Delete `fog_data.db` to reset
 - **CORS errors**: Ensure Flask-CORS is installed
 
