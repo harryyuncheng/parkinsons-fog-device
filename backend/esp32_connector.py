@@ -42,6 +42,8 @@ def disconnect():
 def status(data):
     print(f"[SocketIO] Server status: {data['message']}")
 
+
+
 # === Thread: Serial Reading ===
 def read_serial():
     global serial_connected
@@ -72,8 +74,8 @@ def read_serial():
                         while data_buffer and timestamp - data_buffer[0][0] > BUFFER_DURATION:
                             data_buffer.popleft()
                         
-                        # Send to Flask server if connected and session is active
-                        if server_connected and current_session_active:
+                        # Send to Flask server if connected
+                        if server_connected:
                             send_imu_data_to_server(ax, ay, az, gx, gy, gz, timestamp)
                 
             except UnicodeDecodeError as e:
@@ -92,10 +94,11 @@ def read_serial():
         serial_connected = False
 
 def send_imu_data_to_server(ax, ay, az, gx, gy, gz, timestamp):
-    """Send IMU data to Flask server via SocketIO"""
+    """Send RAW IMU data to Flask server via SocketIO (no state, just sensor values)"""
     try:
+        from datetime import datetime
         imu_data = {
-            'timestamp': timestamp,
+            'timestamp': datetime.fromtimestamp(timestamp).isoformat(),
             'acc_x': round(ax, 3),
             'acc_y': round(ay, 3),
             'acc_z': round(az, 3),
@@ -104,6 +107,7 @@ def send_imu_data_to_server(ax, ay, az, gx, gy, gz, timestamp):
             'gyro_z': round(gz, 3)
         }
         sio.emit('real_imu_data', imu_data)
+        print(f"[Data] Sent: ax={ax:.2f}, ay={ay:.2f}, az={az:.2f}, gx={gx:.2f}, gy={gy:.2f}, gz={gz:.2f}")
     except Exception as e:
         print(f"[SocketIO] Error sending IMU data: {e}")
 

@@ -3,11 +3,11 @@ from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import sqlite3
 import json
-import numpy as np
 from datetime import datetime
 import threading
 import time
-import random
+import csv
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -31,57 +31,16 @@ def init_db():
 # Initialize database
 init_db()
 
+# Create data directory for CSV exports
+DATA_DIR = 'data'
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+    print(f"Created data directory: {DATA_DIR}")
+
 # Global variables for data streaming
 streaming = False
 current_session_id = None
-use_real_data = False  # Flag to use real ESP32 data instead of simulated
-
-class IMUDataGenerator:
-    """Simulates real-time IMU data for demonstration"""
-    def __init__(self):
-        self.time_step = 0
-        self.current_state = 'standing'  # 'walking', 'standing', 'freezing'
-        
-    def generate_sample(self):
-        """Generate a single IMU sample"""
-        if self.current_state == 'freezing':
-            # Simulate FOG: reduced movement, more irregular patterns
-            acc_x = np.random.normal(0, 0.5) + 0.1 * np.sin(self.time_step * 0.1)
-            acc_y = np.random.normal(0, 0.5) + 0.1 * np.cos(self.time_step * 0.1)
-            acc_z = np.random.normal(9.8, 0.5)
-            gyro_x = np.random.normal(0, 0.2)
-            gyro_y = np.random.normal(0, 0.2)
-            gyro_z = np.random.normal(0, 0.2)
-        elif self.current_state == 'walking':
-            # Simulate walking: higher acceleration and gyro activity
-            acc_x = np.random.normal(0, 1.5) + 2 * np.sin(self.time_step * 0.3)
-            acc_y = np.random.normal(0, 1.5) + 1.5 * np.cos(self.time_step * 0.3)
-            acc_z = np.random.normal(9.8, 1.0) + 0.5 * np.sin(self.time_step * 0.2)
-            gyro_x = np.random.normal(0, 0.8) + 0.5 * np.sin(self.time_step * 0.25)
-            gyro_y = np.random.normal(0, 0.8) + 0.5 * np.cos(self.time_step * 0.25)
-            gyro_z = np.random.normal(0, 0.8)
-        else:  # standing
-            # Simulate standing: low activity, mostly gravity
-            acc_x = np.random.normal(0, 0.3)
-            acc_y = np.random.normal(0, 0.3)
-            acc_z = np.random.normal(9.8, 0.3)
-            gyro_x = np.random.normal(0, 0.1)
-            gyro_y = np.random.normal(0, 0.1)
-            gyro_z = np.random.normal(0, 0.1)
-        
-        self.time_step += 1
-        
-        return {
-            'timestamp': datetime.now().isoformat(),
-            'acc_x': round(acc_x, 3),
-            'acc_y': round(acc_y, 3),
-            'acc_z': round(acc_z, 3),
-            'gyro_x': round(gyro_x, 3),
-            'gyro_y': round(gyro_y, 3),
-            'gyro_z': round(gyro_z, 3)
-        }
-
-imu_generator = IMUDataGenerator()
+current_state = 'standing'  # Track current state for labeling
 
 def store_imu_data(data, label='standing'):
     """Store IMU data in database"""
@@ -95,34 +54,6 @@ def store_imu_data(data, label='standing'):
     conn.commit()
     conn.close()
 
-def data_streaming_thread():
-    """Background thread for streaming IMU data (only used for simulated data)"""
-    global streaming, use_real_data
-    while streaming:
-        try:
-            # Only generate simulated data if not using real ESP32 data
-            if not use_real_data:
-                # Generate IMU sample
-                imu_sample = imu_generator.generate_sample()
-                
-                # Store in database with current state
-                store_imu_data(imu_sample, label=imu_generator.current_state)
-                
-                # Add current state to sample for frontend
-                imu_sample['current_state'] = imu_generator.current_state
-                
-                # Emit to frontend
-                socketio.emit('imu_data', imu_sample)
-                
-                # Wait for next sample (50Hz = 20ms)
-                time.sleep(0.02)
-            else:
-                # When using real data, just sleep and let the ESP32 connector handle data
-                time.sleep(0.1)
-        except Exception as e:
-            print(f"Error in data streaming: {e}")
-            time.sleep(0.1)
-
 @app.route('/')
 def index():
     return jsonify({'message': 'FOG Detection Backend API', 'status': 'running'})
@@ -133,21 +64,26 @@ def start_session():
     if not streaming:
         current_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         streaming = True
-        thread = threading.Thread(target=data_streaming_thread)
-        thread.daemon = True
-        thread.start()
+        print(f"Started session: {current_session_id}")
         return jsonify({'status': 'started', 'session_id': current_session_id})
     return jsonify({'status': 'already_running', 'session_id': current_session_id})
 
 @app.route('/stop_session', methods=['POST'])
 def stop_session():
-    global streaming
-    streaming = False
-    return jsonify({'status': 'stopped'})
+    global streaming, current_session_id
+    if streaming and current_session_id:
+        streaming = False
+        session_to_return = current_session_id
+        print(f"Session stopped: {current_session_id}")
+        return jsonify({'status': 'stopped', 'session_id': session_to_return})
+    else:
+        return jsonify({'status': 'no_active_session'})
 
 @app.route('/annotate_state', methods=['POST'])
 def annotate_state():
     """Annotate current time window with activity state"""
+    global current_state
+    
     data = request.json
     state = data.get('state', 'standing')  # 'walking', 'standing', 'freezing'
     
@@ -155,11 +91,14 @@ def annotate_state():
     if state not in ['walking', 'standing', 'freezing']:
         return jsonify({'error': 'Invalid state. Must be walking, standing, or freezing'}), 400
     
+    # Update current state
+    current_state = state
+    
     # Update the last few records in database 
     conn = sqlite3.connect('fog_data.db')
     c = conn.cursor()
     
-    # Mark last 2 seconds of data (100 samples at 50Hz) with the new state
+    # Mark last 2 seconds of data with the new state
     c.execute('''UPDATE imu_data 
                  SET label = ? 
                  WHERE session_id = ? 
@@ -171,9 +110,7 @@ def annotate_state():
     conn.commit()
     conn.close()
     
-    # Update simulation
-    imu_generator.current_state = state
-    
+    print(f"State updated to: {state}")
     socketio.emit('state_annotation', {'state': state, 'timestamp': datetime.now().isoformat()})
     
     return jsonify({'status': 'annotated', 'state': state})
@@ -215,37 +152,78 @@ def get_sessions():
     
     return jsonify(result)
 
+@app.route('/save_session_csv/<session_id>', methods=['POST'])
+def save_session_csv(session_id):
+    """Save session data as CSV file in the backend data directory"""
+    try:
+        # Get session data from database
+        conn = sqlite3.connect('fog_data.db')
+        c = conn.cursor()
+        c.execute('''SELECT timestamp, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z, label 
+                     FROM imu_data WHERE session_id = ? ORDER BY timestamp''', (session_id,))
+        data = c.fetchall()
+        conn.close()
+        
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data found for session'}), 404
+        
+        # Create CSV filename
+        csv_filename = f"session_{session_id}.csv"
+        csv_filepath = os.path.join(DATA_DIR, csv_filename)
+        
+        # Write CSV file
+        with open(csv_filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            # Write header
+            writer.writerow(['timestamp', 'acc_x', 'acc_y', 'acc_z', 'gyro_x', 'gyro_y', 'gyro_z', 'label'])
+            # Write data
+            writer.writerows(data)
+        
+        print(f"📁 Saved CSV: {csv_filepath} ({len(data)} samples)")
+        
+        return jsonify({
+            'status': 'success', 
+            'message': f'Session data saved as {csv_filename}',
+            'filepath': csv_filepath,
+            'samples': len(data)
+        })
+        
+    except Exception as e:
+        print(f"Error saving CSV: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected')
+    print('🔌 Client connected to Flask backend WebSocket')
     emit('status', {'message': 'Connected to FOG Detection System'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('Client disconnected')
+    print('🔌 Client disconnected from Flask backend WebSocket')
 
 @socketio.on('real_imu_data')
 def handle_real_imu_data(data):
-    """Handle real IMU data from ESP32 connector"""
-    global current_session_id, use_real_data
+    """Handle raw IMU data from ESP32 connector (6 sensor values only)"""
+    global current_session_id, streaming, current_state
     
     if current_session_id and streaming:
         try:
-            # Store in database with current state
-            # The ESP32 connector doesn't know the current state, so we use the generator's state
-            store_imu_data(data, label=imu_generator.current_state)
+            # Store RAW IMU data in database with current user-annotated state
+            store_imu_data(data, label=current_state)
             
-            # Add current state to sample for frontend
-            data['current_state'] = imu_generator.current_state
+            # Create a copy for frontend and add current state
+            frontend_data = data.copy()
+            frontend_data['current_state'] = current_state
             
             # Forward to all connected clients (including the web frontend)
-            emit('imu_data', data, broadcast=True)
-            
-            # Mark that we're using real data
-            use_real_data = True
+            emit('imu_data', frontend_data, broadcast=True)
+            print(f"📤 Stored & forwarded: acc_x={data.get('acc_x')}, state={current_state}")
             
         except Exception as e:
-            print(f"Error handling real IMU data: {e}")
+            print(f"❌ Error handling real IMU data: {e}")
+    # Always log received data but don't store if no session
+    elif not streaming:
+        print(f"⚠️ ESP32 data received but no recording session active")
 
 @socketio.on('esp32_status')
 def handle_esp32_status(data):

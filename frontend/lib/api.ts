@@ -71,7 +71,7 @@ export const api = {
     }
   },
 
-  async stopSession(): Promise<ApiResponse> {
+  async stopSession(): Promise<ApiResponse<{ session_id: string }>> {
     try {
       const response = await fetch(`${BACKEND_URL}/stop_session`, {
         method: "POST",
@@ -147,6 +147,32 @@ export const api = {
       return response.ok;
     } catch (error) {
       return false;
+    }
+  },
+
+  // Save session as CSV in backend
+  async saveSessionCSV(
+    sessionId: string
+  ): Promise<
+    ApiResponse<{ message: string; filepath: string; samples: number }>
+  > {
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/save_session_csv/${sessionId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   },
 };
