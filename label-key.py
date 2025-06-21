@@ -18,7 +18,7 @@ LOG_FILE = 'imu_log.csv'
 
 # === Data Structures ===
 data_buffer = deque()  # holds (timestamp, ax, ay, az, gx, gy, gz)
-label_events = deque()  # holds (timestamp, label)
+label_intervals = deque()  # holds (start_ts, end_ts, label)
 
 # === Thread: Serial Reading ===
 def read_serial():
@@ -42,13 +42,26 @@ def read_serial():
 # === Thread: Key Labeling ===
 def key_listener():
     print("[Key] Press W (walk), S (stand), F (freeze)")
+    key_states = {key: False for key in LABEL_KEYS}
+    key_start_times = {key: None for key in LABEL_KEYS}
+
     while True:
         for key, label in LABEL_KEYS.items():
             if keyboard.is_pressed(key):
-                timestamp = time.time()
-                label_events.append((timestamp, label))
-                print(f"[Key] {label.upper()} at {timestamp:.2f}")
-                time.sleep(0.2)  # Prevent repeat labels
+                if not key_states[key]:
+                    # Key just pressed
+                    key_states[key] = True
+                    key_start_times[key] = time.time()
+                    print(f"[Key] {label.upper()} START at {key_start_times[key]:.2f}")
+            else:
+                if key_states[key]:
+                    # Key just released
+                    key_states[key] = False
+                    start_ts = key_start_times[key]
+                    end_ts = time.time()
+                    label_intervals.append((start_ts, end_ts, label))
+                    print(f"[Key] {label.upper()} END at {end_ts:.2f}")
+        time.sleep(0.01)
 
 # === Logger: Match labels to data ===
 def logger():
@@ -62,10 +75,10 @@ def logger():
                 datapoint = data_buffer.popleft()
                 ts, *imu_data = datapoint
 
-                # Match label if within 0.5s
                 label = None
-                for event_ts, event_label in list(label_events):
-                    if abs(ts - event_ts) <= 0.5:
+                for start_ts, end_ts, event_label in list(label_intervals):
+                    # Label if data point is in the interval, but not in the last 0.2s before release
+                    if start_ts <= ts < end_ts - 0.2:
                         label = event_label
                         break
 
