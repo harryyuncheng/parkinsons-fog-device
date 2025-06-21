@@ -53,7 +53,7 @@ npm run dev
 ### 3. Access the System
 
 - **Web Interface**: http://localhost:3000
-- **Backend API**: http://localhost:5000
+- **Backend API**: http://localhost:6000
 
 ## Usage Modes
 
