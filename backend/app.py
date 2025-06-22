@@ -10,6 +10,7 @@ import csv
 import os
 import serial
 from fog_predictor import initialize_predictor, get_predictor
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
 CORS(app)  # Enable CORS for Next.js frontend
@@ -256,16 +257,10 @@ def handle_real_imu_data(data):
 
             # Get real-time prediction
             prediction_result = predictor.predict()
-            current_prediction = prediction_result['prediction']
             print(f"🤖 Prediction result: {prediction_result}")  # Log prediction result
 
             # Send prediction to serial device for hardware control
-            if current_prediction == 'freezing':
-                command = 'p'
-                print(f"🔥 Freezing detected - sending freeze alert!")
-            else:
-                command = 's'
-
+            command = 'p' if prediction_result['prediction'] == 'freezing' else 's'
             success = send_command_to_serial(command)
             if success:
                 print(f"✅ Command '{command}' sent successfully")

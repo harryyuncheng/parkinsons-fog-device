@@ -4,11 +4,6 @@ import numpy as np
 from collections import deque
 import threading
 import time
-import os
-
-# Force PyTorch to use single-threaded mode to prevent resource leaks
-torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
 
 class FOGClassifier(nn.Module):
     """CNN-LSTM model for FOG classification - same as training"""
@@ -246,31 +241,6 @@ class FOGPredictor:
             self.data_buffer.clear()
             self.prediction_history.clear()
         print("🔄 Prediction buffer reset")
-    
-    def cleanup(self):
-        """Cleanup resources to prevent memory leaks"""
-        try:
-            # Clear buffers
-            with self.buffer_lock:
-                self.data_buffer.clear()
-                self.prediction_history.clear()
-            
-            # Clear PyTorch model from memory
-            if hasattr(self, 'model'):
-                del self.model
-            
-            # Force garbage collection
-            import gc
-            gc.collect()
-            
-            # Clear PyTorch cache
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-                
-            print("🧹 FOG Predictor cleanup completed")
-            
-        except Exception as e:
-            print(f"⚠️ Error during cleanup: {e}")
 
 # Global predictor instance
 fog_predictor = None

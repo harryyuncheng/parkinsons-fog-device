@@ -46,19 +46,19 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
     }
   }, [currentState]);
 
-  // Animation configurations for walking
+  // Animation configurations for walking (centered around x=60)
   const legPositions = [
-    { left: { x2: 30, y2: 105 }, right: { x2: 50, y2: 105 } }, // neutral
-    { left: { x2: 35, y2: 105 }, right: { x2: 45, y2: 105 } }, // left forward
-    { left: { x2: 30, y2: 105 }, right: { x2: 50, y2: 105 } }, // neutral
-    { left: { x2: 25, y2: 105 }, right: { x2: 55, y2: 105 } }, // right forward
+    { left: { x: 50, y: 130 }, right: { x: 70, y: 130 } }, // neutral
+    { left: { x: 55, y: 130 }, right: { x: 65, y: 130 } }, // left forward, right back
+    { left: { x: 50, y: 130 }, right: { x: 70, y: 130 } }, // neutral
+    { left: { x: 45, y: 130 }, right: { x: 75, y: 130 } }, // left back, right forward
   ];
 
   const armPositions = [
-    { left: { x2: 25, y2: 50 }, right: { x2: 55, y2: 50 } },
-    { left: { x2: 20, y2: 45 }, right: { x2: 60, y2: 55 } },
-    { left: { x2: 25, y2: 50 }, right: { x2: 55, y2: 50 } },
-    { left: { x2: 30, y2: 55 }, right: { x2: 50, y2: 45 } },
+    { left: { x: 45, y: 60 }, right: { x: 75, y: 60 } }, // neutral
+    { left: { x: 40, y: 55 }, right: { x: 80, y: 65 } }, // left forward, right back
+    { left: { x: 45, y: 60 }, right: { x: 75, y: 60 } }, // neutral
+    { left: { x: 50, y: 65 }, right: { x: 70, y: 55 } }, // left back, right forward
   ];
 
   // Color and animation settings based on state
@@ -117,12 +117,12 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
           y1={45 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
           x2={
             currentState === "walking"
-              ? 40 + armPositions[walkStep].left.x2 - 25
+              ? armPositions[walkStep].left.x
               : 40 + (currentState === "freezing" ? shakeOffset * 2 : 0)
           }
           y2={
             currentState === "walking"
-              ? armPositions[walkStep].left.y2 + 15
+              ? armPositions[walkStep].left.y
               : 65 + (currentState === "freezing" ? shakeOffset : 0)
           }
           stroke={config.color}
@@ -134,12 +134,12 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
           y1={45 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
           x2={
             currentState === "walking"
-              ? 40 + armPositions[walkStep].right.x2 - 25
+              ? armPositions[walkStep].right.x
               : 80 + (currentState === "freezing" ? shakeOffset * 2 : 0)
           }
           y2={
             currentState === "walking"
-              ? armPositions[walkStep].right.y2 + 15
+              ? armPositions[walkStep].right.y
               : 65 + (currentState === "freezing" ? shakeOffset : 0)
           }
           stroke={config.color}
@@ -153,14 +153,10 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
           y1={90 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
           x2={
             currentState === "walking"
-              ? 30 + legPositions[walkStep].left.x2 - 30
+              ? legPositions[walkStep].left.x
               : 45 + (currentState === "freezing" ? shakeOffset : 0)
           }
-          y2={
-            currentState === "walking"
-              ? legPositions[walkStep].left.y2 + 25
-              : 130
-          }
+          y2={currentState === "walking" ? legPositions[walkStep].left.y : 130}
           stroke={config.color}
           strokeWidth="4"
           className="transition-all duration-200"
@@ -170,14 +166,10 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
           y1={90 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
           x2={
             currentState === "walking"
-              ? 30 + legPositions[walkStep].right.x2 - 30
+              ? legPositions[walkStep].right.x
               : 75 + (currentState === "freezing" ? shakeOffset : 0)
           }
-          y2={
-            currentState === "walking"
-              ? legPositions[walkStep].right.y2 + 25
-              : 130
-          }
+          y2={currentState === "walking" ? legPositions[walkStep].right.y : 130}
           stroke={config.color}
           strokeWidth="4"
           className="transition-all duration-200"
@@ -187,13 +179,13 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
         <line
           x1={
             currentState === "walking"
-              ? legPositions[walkStep].left.x2
+              ? legPositions[walkStep].left.x
               : 45 + (currentState === "freezing" ? shakeOffset : 0)
           }
           y1="130"
           x2={
             currentState === "walking"
-              ? legPositions[walkStep].left.x2 - 8
+              ? legPositions[walkStep].left.x - 8
               : 37 + (currentState === "freezing" ? shakeOffset : 0)
           }
           y2="130"
@@ -203,13 +195,13 @@ const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
         <line
           x1={
             currentState === "walking"
-              ? legPositions[walkStep].right.x2 + 25
+              ? legPositions[walkStep].right.x
               : 75 + (currentState === "freezing" ? shakeOffset : 0)
           }
           y1="130"
           x2={
             currentState === "walking"
-              ? legPositions[walkStep].right.x2 + 33
+              ? legPositions[walkStep].right.x + 8
               : 83 + (currentState === "freezing" ? shakeOffset : 0)
           }
           y2="130"
@@ -390,13 +382,13 @@ export default function AIMonitoring({
                   <div className="text-sm text-gray-600 mt-1">
                     {prediction.prediction === "freezing" &&
                       prediction.confidence > 0.8 &&
-                      "🚨 High confidence freeze detected!"}
+                      "High confidence freeze detected!"}
                     {prediction.prediction === "walking" &&
                       prediction.confidence > 0.8 &&
-                      "✅ Normal walking detected"}
+                      "Normal walking detected"}
                     {prediction.prediction === "standing" &&
                       prediction.confidence > 0.8 &&
-                      "🧍 Standing position detected"}
+                      "Standing position detected"}
                   </div>
                 </div>
               </div>
