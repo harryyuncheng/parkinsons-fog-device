@@ -54,7 +54,7 @@ else:
 
 # Initialize Serial Controller for device communication
 print("📡 Initializing Serial Controller...")
-serial_initialized = initialize_serial_controller('/dev/ttyUSB0', 9600)
+serial_initialized = initialize_serial_controller('/dev/cu.usbserial-0001', 115200)
 if serial_initialized:
     print("✅ Serial controller ready for device communication!")
 else:
@@ -256,8 +256,8 @@ def get_serial_status():
 def reconnect_serial():
     """Reconnect serial controller with optional new settings"""
     data = request.json if request.json else {}
-    port = data.get('port', '/dev/ttyUSB0')
-    baudrate = data.get('baudrate', 9600)
+    port = data.get('port', '/dev/cu.usbserial-0001')
+    baudrate = data.get('baudrate', 115200)
     
     try:
         # Re-initialize with new settings
