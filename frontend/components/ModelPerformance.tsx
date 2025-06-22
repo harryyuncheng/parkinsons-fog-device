@@ -208,9 +208,7 @@ const ModelPerformance = () => {
         <h1 className="text-4xl font-bold bg-clip-text text-black mb-2">
           FOG Detection Prediction Model
         </h1>
-        <p className="text-gray-600 text-lg">
-          CNN-LSTM Hybrid Architecture Performance Dashboard
-        </p>
+        <p className="text-gray-600 text-lg">CNN-LSTM Hybrid Architecture</p>
       </div>
 
       {/* Key Metrics Row */}
