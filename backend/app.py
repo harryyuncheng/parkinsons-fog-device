@@ -9,6 +9,7 @@ import time
 import csv
 import os
 from fog_predictor import initialize_predictor, get_predictor
+from serial_controller import initialize_serial_controller, process_prediction_for_serial
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -50,6 +51,14 @@ if predictor_initialized:
     print("✅ FOG predictor ready for real-time monitoring!")
 else:
     print("❌ FOG predictor failed to initialize")
+
+# Initialize Serial Controller for device communication
+print("📡 Initializing Serial Controller...")
+serial_initialized = initialize_serial_controller('/dev/ttyUSB0', 9600)
+if serial_initialized:
+    print("✅ Serial controller ready for device communication!")
+else:
+    print("❌ Serial controller failed to initialize - check device connection")
 
 def store_imu_data(data, label='standing'):
     """Store IMU data in database"""
@@ -233,6 +242,33 @@ def reset_predictor():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/serial_status', methods=['GET'])
+def get_serial_status():
+    """Get serial controller status"""
+    from serial_controller import get_serial_controller
+    controller = get_serial_controller()
+    if controller:
+        return jsonify(controller.get_status())
+    else:
+        return jsonify({'error': 'Serial controller not initialized'}), 500
+
+@app.route('/serial_reconnect', methods=['POST'])
+def reconnect_serial():
+    """Reconnect serial controller with optional new settings"""
+    data = request.json if request.json else {}
+    port = data.get('port', '/dev/ttyUSB0')
+    baudrate = data.get('baudrate', 9600)
+    
+    try:
+        # Re-initialize with new settings
+        serial_initialized = initialize_serial_controller(port, baudrate)
+        if serial_initialized:
+            return jsonify({'status': 'success', 'message': f'Serial reconnected on {port}', 'port': port, 'baudrate': baudrate})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to reconnect serial controller'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @socketio.on('connect')
 def handle_connect():
     print('🔌 Client connected to Flask backend WebSocket')
@@ -255,6 +291,9 @@ def handle_real_imu_data(data):
             
             # Get real-time prediction
             prediction_result = predictor.predict()
+            
+            # Send prediction to serial device for hardware control
+            process_prediction_for_serial(prediction_result)
             
             # Add prediction to data being sent to frontend
             frontend_data = data.copy()
