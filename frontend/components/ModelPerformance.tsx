@@ -10,7 +10,7 @@ const ModelPerformance = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setAnimationProgress((prev) => (prev < 100 ? prev + 2 : 100));
+      setAnimationProgress((prev) => (prev < 100 ? prev + 2 : 0));
     }, 50);
     return () => clearInterval(timer);
   }, []);
@@ -206,7 +206,7 @@ const ModelPerformance = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-clip-text text-black mb-2">
-          🧠 FOG Detection AI Model
+          FOG Detection AI Model
         </h1>
         <p className="text-gray-600 text-lg">
           CNN-LSTM Hybrid Architecture Performance Dashboard

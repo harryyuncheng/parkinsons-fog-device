@@ -26,7 +26,6 @@ import {
   Square,
   Wifi,
   WifiOff,
-  Database,
   Activity,
   AlertTriangle,
   User,
@@ -34,7 +33,6 @@ import {
   CheckCircle,
   X,
   Info,
-  Brain,
 } from "lucide-react";
 import AIMonitoring from "@/components/AIMonitoring";
 import ModelPerformance from "@/components/ModelPerformance";
@@ -80,7 +78,9 @@ export default function FreezeOfGaitMonitor() {
     message: string;
     show: boolean;
   }>({ type: "success", message: "", show: false });
-  const [aiPrediction, setAiPrediction] = useState<PredictionData | null>(null);
+  const [aiPrediction, setAiPrediction] = useState<PredictionData | undefined>(
+    undefined
+  );
   const [showInstructions, setShowInstructions] = useState(false);
 
   // Show notification function
@@ -116,18 +116,18 @@ export default function FreezeOfGaitMonitor() {
       console.log("Backend health check:", isHealthy);
 
       if (isHealthy) {
-        // Setup socket event listeners
-        socketEvents.onConnect(() => {
+        // Define event handlers
+        const handleConnect = () => {
           console.log("✅ Connected to backend WebSocket");
           setIsConnected(true);
-        });
+        };
 
-        socketEvents.onDisconnect(() => {
+        const handleDisconnect = () => {
           console.log("❌ Disconnected from backend WebSocket");
           setIsConnected(false);
-        });
+        };
 
-        socketEvents.onIMUData((data: ApiIMUData) => {
+        const handleIMUData = (data: ApiIMUData) => {
           console.log("📡 Real ESP32 data received:", data);
           console.log("📊 Data details:", {
             acc_x: data.acc_x,
@@ -171,7 +171,7 @@ export default function FreezeOfGaitMonitor() {
             // Update AI prediction data if available
             if (data.ai_prediction) {
               const newPrediction = data.ai_prediction as PredictionData;
-              setAiPrediction((prev: PredictionData | null) => {
+              setAiPrediction((prev: PredictionData | undefined) => {
                 // Only update if the prediction actually changed to prevent excessive re-renders
                 if (
                   !prev ||
@@ -185,22 +185,49 @@ export default function FreezeOfGaitMonitor() {
               });
             }
           });
-        });
+        };
 
-        socketEvents.onStateAnnotation((data) => {
+        const handleStateAnnotation = (data: {
+          state: string;
+          timestamp: string;
+        }) => {
           console.log("🏷️ State annotation received:", data.state);
           setCurrentState(data.state);
-        });
+        };
 
-        socketEvents.onESP32Status((data) => {
+        const handleESP32Status = (data: unknown) => {
           console.log("🔌 ESP32 status:", data);
-        });
+        };
+
+        // Setup socket event listeners
+        socketEvents.onConnect(handleConnect);
+        socketEvents.onDisconnect(handleDisconnect);
+        socketEvents.onIMUData(handleIMUData);
+        socketEvents.onStateAnnotation(handleStateAnnotation);
+        socketEvents.onESP32Status(handleESP32Status);
+
+        // Return cleanup function
+        return () => {
+          // Remove event listeners
+          socketEvents.off("connect", handleConnect);
+          socketEvents.off("disconnect", handleDisconnect);
+          socketEvents.off("imu_data", handleIMUData);
+          socketEvents.off("state_annotation", handleStateAnnotation);
+          socketEvents.off("esp32_status", handleESP32Status);
+        };
       }
     };
 
-    initializeConnection();
+    let cleanup: (() => void) | undefined;
+
+    initializeConnection().then((cleanupFn) => {
+      cleanup = cleanupFn;
+    });
 
     return () => {
+      if (cleanup) {
+        cleanup();
+      }
       disconnectSocket();
     };
   }, []);
