@@ -33,7 +33,9 @@ import {
   UserCheck,
   CheckCircle,
   X,
+  Brain,
 } from "lucide-react";
+import AIMonitoring from "@/components/AIMonitoring";
 
 interface DataPoint {
   time: string;
@@ -62,6 +64,7 @@ export default function FreezeOfGaitMonitor() {
     message: string;
     show: boolean;
   }>({ type: "success", message: "", show: false });
+  const [aiPrediction, setAiPrediction] = useState<any>(null);
 
   // Show notification function
   const showNotification = (type: "success" | "error", message: string) => {
@@ -355,8 +358,9 @@ export default function FreezeOfGaitMonitor() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="recording">Real-time Recording</TabsTrigger>
+            <TabsTrigger value="monitoring">AI Monitor</TabsTrigger>
             <TabsTrigger value="sessions">Session History</TabsTrigger>
           </TabsList>
 
@@ -559,6 +563,13 @@ export default function FreezeOfGaitMonitor() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="space-y-6">
+            <AIMonitoring
+              isConnected={isConnected}
+              realTimePrediction={aiPrediction}
+            />
           </TabsContent>
 
           <TabsContent value="sessions" className="space-y-6">

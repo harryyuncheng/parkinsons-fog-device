@@ -4,3 +4,5 @@ Flask-CORS==4.0.0
 numpy>=1.26.0
 pyserial
 keyboard
+torch>=2.0.0
+torchvision>=0.15.0

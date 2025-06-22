@@ -92,7 +92,8 @@ class FOGPredictor:
     def load_model(self, model_path):
         """Load the trained model"""
         try:
-            checkpoint = torch.load(model_path, map_location=self.device)
+            # Use weights_only=False for compatibility with models containing numpy data
+            checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
             
             # Extract model configuration
             model_config = checkpoint['model_config']
