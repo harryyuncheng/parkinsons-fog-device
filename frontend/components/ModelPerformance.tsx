@@ -206,7 +206,7 @@ const ModelPerformance = () => {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-clip-text text-black mb-2">
-          FOG Detection AI Model
+          FOG Detection Prediction Model
         </h1>
         <p className="text-gray-600 text-lg">
           CNN-LSTM Hybrid Architecture Performance Dashboard
