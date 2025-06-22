@@ -33,7 +33,7 @@ class IMUDataset(Dataset):
 class FOGClassifier(nn.Module):
     """CNN-LSTM model for FOG classification"""
     
-    def __init__(self, input_channels=6, sequence_length=128, num_classes=3, dropout_rate=0.3):
+    def __init__(self, input_channels=6, sequence_length=256, num_classes=3, dropout_rate=0.3):
         super(FOGClassifier, self).__init__()
         
         # 1D CNN layers for feature extraction
@@ -116,7 +116,7 @@ def load_csv_data(data_dir='backend/data'):
     
     return combined_df
 
-def create_sequences(data, sequence_length=128, overlap=0.5):
+def create_sequences(data, sequence_length=256, overlap=0.5):
     """Create sliding window sequences from IMU data"""
     
     # Extract features and labels
@@ -318,8 +318,8 @@ def main():
     
     # Create sequences
     print(f"\n🔄 Creating sequences...")
-    sequences, labels, label_map = create_sequences(data, sequence_length=128, overlap=0.5)
-    print(f"Created {len(sequences)} sequences of length 128")
+    sequences, labels, label_map = create_sequences(data, sequence_length=256, overlap=0.5)
+    print(f"Created {len(sequences)} sequences of length 256")
     print(f"Label mapping: {label_map}")
     
     # Split data
@@ -357,7 +357,7 @@ def main():
     
     model = FOGClassifier(
         input_channels=6,
-        sequence_length=128,
+        sequence_length=256,
         num_classes=3,
         dropout_rate=0.3
     )
@@ -394,7 +394,7 @@ def main():
         'normalization_params': norm_params,
         'model_config': {
             'input_channels': 6,
-            'sequence_length': 128,
+            'sequence_length': 256,
             'num_classes': 3,
             'dropout_rate': 0.3
         }

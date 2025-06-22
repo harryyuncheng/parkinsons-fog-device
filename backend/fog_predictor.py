@@ -8,7 +8,7 @@ import time
 class FOGClassifier(nn.Module):
     """CNN-LSTM model for FOG classification - same as training"""
     
-    def __init__(self, input_channels=6, sequence_length=128, num_classes=3, dropout_rate=0.3):
+    def __init__(self, input_channels=6, sequence_length=256, num_classes=3, dropout_rate=0.3):
         super(FOGClassifier, self).__init__()
         
         # 1D CNN layers for feature extraction
@@ -67,7 +67,7 @@ class FOGClassifier(nn.Module):
 class FOGPredictor:
     """Real-time FOG prediction using sliding window approach"""
     
-    def __init__(self, model_path='models/fog_classifier_20250622_041238.pth', sequence_length=128):
+    def __init__(self, model_path='models/fog_classifier_20250622_041238.pth', sequence_length=256):
         self.sequence_length = sequence_length
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
