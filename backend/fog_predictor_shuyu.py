@@ -256,7 +256,7 @@ class FOGPredictor:
 # Global predictor instance
 fog_predictor = None
 
-def initialize_predictor(model_path='models/har_cnn_model.pth'):
+def initialize_predictor(model_path='models/har_cnn_model_20250622_031639.pth'):
     """Initialize the global FOG/HAR predictor"""
     global fog_predictor
     try:
@@ -273,7 +273,7 @@ def get_predictor():
 # Example usage
 if __name__ == "__main__":
     # Initialize predictor
-    if initialize_predictor('models/har_cnn_model.pth'):
+    if initialize_predictor('models/har_cnn_model_20250622_031639.pth'):
         predictor = get_predictor()
         
         # Simulate adding data points

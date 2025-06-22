@@ -8,7 +8,7 @@ import threading
 import time
 import csv
 import os
-from fog_predictor import initialize_predictor, get_predictor
+from fog_predictor_shuyu import initialize_predictor, get_predictor
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -45,7 +45,7 @@ current_state = 'standing'  # Track current state for labeling
 
 # Initialize FOG predictor
 print("🤖 Initializing FOG predictor...")
-predictor_initialized = initialize_predictor('models/shuyu_1dCNN_v1.pth')
+predictor_initialized = initialize_predictor()
 if predictor_initialized:
     print("✅ FOG predictor ready for real-time monitoring!")
 else:
