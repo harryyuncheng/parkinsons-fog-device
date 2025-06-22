@@ -12,6 +12,18 @@ export interface IMUData {
   gyro_y: number;
   gyro_z: number;
   current_state?: string;
+  ai_prediction?: {
+    prediction: string;
+    raw_prediction?: string;
+    confidence: number;
+    probabilities: {
+      walking: number;
+      standing: number;
+      freezing: number;
+    };
+    buffer_size: number;
+    status: string;
+  };
 }
 
 export interface SessionData {
@@ -166,6 +178,38 @@ export const api = {
           },
         }
       );
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  // AI Prediction endpoints
+  async getPrediction(): Promise<ApiResponse<any>> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/predict`);
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async resetPredictor(): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/reset_predictor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
       const data = await response.json();
       return { status: "success", data };
     } catch (error) {

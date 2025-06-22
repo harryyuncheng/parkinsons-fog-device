@@ -144,6 +144,11 @@ export default function FreezeOfGaitMonitor() {
           });
           setCurrentState(data.current_state || "standing");
           setSampleCount((prev) => prev + 1);
+
+          // Update AI prediction data if available
+          if (data.ai_prediction) {
+            setAiPrediction(data.ai_prediction);
+          }
         });
 
         socketEvents.onStateAnnotation((data) => {

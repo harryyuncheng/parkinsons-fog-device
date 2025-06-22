@@ -8,6 +8,7 @@ import threading
 import time
 import csv
 import os
+from fog_predictor import initialize_predictor, get_predictor
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -41,6 +42,14 @@ if not os.path.exists(DATA_DIR):
 streaming = False
 current_session_id = None
 current_state = 'standing'  # Track current state for labeling
+
+# Initialize FOG predictor
+print("🤖 Initializing FOG predictor...")
+predictor_initialized = initialize_predictor('fog_classifier_20250622_003351.pth')
+if predictor_initialized:
+    print("✅ FOG predictor ready for real-time monitoring!")
+else:
+    print("❌ FOG predictor failed to initialize")
 
 def store_imu_data(data, label='standing'):
     """Store IMU data in database"""
@@ -192,6 +201,38 @@ def save_session_csv(session_id):
         print(f"Error saving CSV: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/predict', methods=['GET'])
+def get_prediction():
+    """Get current FOG prediction"""
+    predictor = get_predictor()
+    if not predictor:
+        return jsonify({'error': 'Predictor not initialized'}), 500
+    
+    try:
+        prediction = predictor.predict()
+        buffer_status = predictor.get_buffer_status()
+        
+        return jsonify({
+            'prediction': prediction,
+            'buffer_status': buffer_status,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/reset_predictor', methods=['POST'])
+def reset_predictor():
+    """Reset the prediction buffer"""
+    predictor = get_predictor()
+    if not predictor:
+        return jsonify({'error': 'Predictor not initialized'}), 500
+    
+    try:
+        predictor.reset_buffer()
+        return jsonify({'status': 'success', 'message': 'Predictor buffer reset'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @socketio.on('connect')
 def handle_connect():
     print('🔌 Client connected to Flask backend WebSocket')
@@ -206,17 +247,35 @@ def handle_real_imu_data(data):
     """Handle raw IMU data from ESP32 connector (6 sensor values only)"""
     global current_session_id, streaming, current_state
     
+    # Add data to predictor for real-time monitoring (always, regardless of recording)
+    predictor = get_predictor()
+    if predictor:
+        try:
+            predictor.add_data_point(data)
+            
+            # Get real-time prediction
+            prediction_result = predictor.predict()
+            
+            # Add prediction to data being sent to frontend
+            frontend_data = data.copy()
+            frontend_data['current_state'] = current_state
+            frontend_data['ai_prediction'] = prediction_result
+            
+        except Exception as e:
+            print(f"❌ Error making prediction: {e}")
+            frontend_data = data.copy()
+            frontend_data['current_state'] = current_state
+            frontend_data['ai_prediction'] = None
+    else:
+        frontend_data = data.copy()
+        frontend_data['current_state'] = current_state
+        frontend_data['ai_prediction'] = None
+    
+    # Store in database only if recording session is active
     if current_session_id and streaming:
         try:
             # Store RAW IMU data in database with current user-annotated state
             store_imu_data(data, label=current_state)
-            
-            # Create a copy for frontend and add current state
-            frontend_data = data.copy()
-            frontend_data['current_state'] = current_state
-            
-            # Forward to all connected clients (including the web frontend)
-            emit('imu_data', frontend_data, broadcast=True)
             print(f"📤 Stored & forwarded: acc_x={data.get('acc_x')}, state={current_state}")
             
         except Exception as e:
@@ -224,6 +283,9 @@ def handle_real_imu_data(data):
     # Always log received data but don't store if no session
     elif not streaming:
         print(f"⚠️ ESP32 data received but no recording session active")
+    
+    # Forward to all connected clients (including the web frontend) with prediction
+    emit('imu_data', frontend_data, broadcast=True)
 
 @socketio.on('esp32_status')
 def handle_esp32_status(data):
