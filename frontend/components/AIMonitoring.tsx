@@ -164,7 +164,7 @@ export default function AIMonitoring({
       {/* Connection Status */}
       {!isConnected && (
         <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4">
+          <CardContent className="px-6 py-4">
             <div className="flex items-center space-x-2 text-yellow-800">
               <AlertTriangle className="w-5 h-5" />
               <span>

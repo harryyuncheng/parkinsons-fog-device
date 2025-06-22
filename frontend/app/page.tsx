@@ -34,6 +34,7 @@ import {
   CheckCircle,
   X,
   Brain,
+  Info,
 } from "lucide-react";
 import AIMonitoring from "@/components/AIMonitoring";
 
@@ -78,6 +79,7 @@ export default function FreezeOfGaitMonitor() {
     show: boolean;
   }>({ type: "success", message: "", show: false });
   const [aiPrediction, setAiPrediction] = useState<any>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Show notification function
   const showNotification = (type: "success" | "error", message: string) => {
@@ -352,9 +354,36 @@ export default function FreezeOfGaitMonitor() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Parkinson's FOG Detection System
-          </h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Parkinson's Freeze of Gait Monitor
+            </h1>
+            <div className="relative">
+              <button
+                onClick={() => setShowInstructions(!showInstructions)}
+                onMouseEnter={() => setShowInstructions(true)}
+                onMouseLeave={() => setShowInstructions(false)}
+                className="p-1 rounded-full hover:bg-gray-50 transition-colors"
+                title="Instructions"
+              >
+                <Info className="w-4 h-4 text-gray-400" />
+              </button>
+              
+              {/* Instructions Tooltip */}
+              {showInstructions && (
+                <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
+                  <h3 className="font-semibold text-sm mb-3">Instructions</h3>
+                  <div className="text-sm space-y-2 text-gray-700">
+                    <div>• Make sure ESP32 is connected and sending data</div>
+                    <div>• Backend must be running on port 6000</div>
+                    <div>• Press W/S/F keys to annotate states while recording</div>
+                    <div>• All real ESP32 data is saved to database</div>
+                    <div>• CSV files saved automatically to backend/data/ directory</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex items-center space-x-4">
             <Badge variant={isConnected ? "default" : "destructive"}>
               {isConnected ? (
@@ -374,7 +403,7 @@ export default function FreezeOfGaitMonitor() {
         {/* Connection Status Alert */}
         {!isConnected && (
           <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-4">
+            <CardContent className="px-6 py-4">
               <div className="flex items-center space-x-2 text-red-800">
                 <AlertTriangle className="w-5 h-5" />
                 <span>
@@ -388,9 +417,9 @@ export default function FreezeOfGaitMonitor() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="recording">Real-time Recording</TabsTrigger>
-            <TabsTrigger value="monitoring">AI Monitor</TabsTrigger>
-            <TabsTrigger value="sessions">Session History</TabsTrigger>
+            <TabsTrigger value="recording" className="cursor-pointer">Real-time Recording</TabsTrigger>
+            <TabsTrigger value="monitoring" className="cursor-pointer">AI Monitor</TabsTrigger>
+            <TabsTrigger value="sessions" className="cursor-pointer">Session History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="recording" className="space-y-6">
@@ -408,7 +437,7 @@ export default function FreezeOfGaitMonitor() {
                     <Button
                       onClick={startRecording}
                       disabled={!isConnected || isRecording}
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 cursor-pointer"
                     >
                       <Play className="w-4 h-4" />
                       <span>Start Recording</span>
@@ -417,7 +446,7 @@ export default function FreezeOfGaitMonitor() {
                       onClick={stopRecording}
                       disabled={!isRecording}
                       variant="outline"
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 cursor-pointer"
                     >
                       <Square className="w-4 h-4" />
                       <span>Stop Recording</span>
@@ -441,7 +470,7 @@ export default function FreezeOfGaitMonitor() {
                           currentState === "walking" ? "default" : "outline"
                         }
                         size="sm"
-                        className="flex items-center space-x-2"
+                        className="flex items-center space-x-2 cursor-pointer"
                       >
                         <User className="w-4 h-4" />
                         <span>Walking (W)</span>
@@ -452,7 +481,7 @@ export default function FreezeOfGaitMonitor() {
                           currentState === "standing" ? "default" : "outline"
                         }
                         size="sm"
-                        className="flex items-center space-x-2"
+                        className="flex items-center space-x-2 cursor-pointer"
                       >
                         <UserCheck className="w-4 h-4" />
                         <span>Standing (S)</span>
@@ -463,7 +492,7 @@ export default function FreezeOfGaitMonitor() {
                           currentState === "freezing" ? "default" : "outline"
                         }
                         size="sm"
-                        className="flex items-center space-x-2"
+                        className="flex items-center space-x-2 cursor-pointer"
                       >
                         <AlertTriangle className="w-4 h-4" />
                         <span>Freezing (F)</span>
@@ -620,7 +649,7 @@ export default function FreezeOfGaitMonitor() {
                     {sessions.map((session) => (
                       <div
                         key={session.session_id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
                       >
                         <div className="space-y-1">
                           <div className="font-medium">
@@ -654,6 +683,7 @@ export default function FreezeOfGaitMonitor() {
                           onClick={() => saveSessionData(session.session_id)}
                           variant="outline"
                           size="sm"
+                          className="cursor-pointer"
                         >
                           Save CSV
                         </Button>
@@ -708,7 +738,7 @@ export default function FreezeOfGaitMonitor() {
               onClick={() =>
                 setNotification((prev) => ({ ...prev, show: false }))
               }
-              className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 ${
+              className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 cursor-pointer ${
                 notification.type === "success"
                   ? "hover:bg-green-600"
                   : "hover:bg-red-600"
@@ -719,20 +749,6 @@ export default function FreezeOfGaitMonitor() {
           </div>
         </div>
       )}
-
-      {/* Instructions */}
-      <Card className="fixed bottom-4 right-4 w-80 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-sm">Instructions</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm space-y-2">
-          <div>• Make sure ESP32 is connected and sending data</div>
-          <div>• Backend must be running on port 6000</div>
-          <div>• Press W/S/F keys to annotate states while recording</div>
-          <div>• All real ESP32 data is saved to database</div>
-          <div>• CSV files saved automatically to backend/data/ directory</div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
