@@ -67,7 +67,7 @@ class FOGClassifier(nn.Module):
 class FOGPredictor:
     """Real-time FOG prediction using sliding window approach"""
     
-    def __init__(self, model_path='models/shuyu_1dCNN_v1.pth', sequence_length=128):
+    def __init__(self, model_path='models/fog_classifier_20250622_035458.pth', sequence_length=128):
         self.sequence_length = sequence_length
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -245,7 +245,7 @@ class FOGPredictor:
 # Global predictor instance
 fog_predictor = None
 
-def initialize_predictor(model_path='models/shuyu_1dCNN_v1.pth'):
+def initialize_predictor(model_path='models/fog_classifier_20250622_035458.pth'):
     """Initialize the global FOG predictor"""
     global fog_predictor
     try:

@@ -8,7 +8,7 @@ import threading
 import time
 import csv
 import os
-from fog_predictor_shuyu import initialize_predictor, get_predictor
+from fog_predictor import initialize_predictor, get_predictor
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'

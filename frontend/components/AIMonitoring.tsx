@@ -50,8 +50,19 @@ export default function AIMonitoring({
   // Use real-time prediction if provided, otherwise poll manually
   useEffect(() => {
     if (realTimePrediction) {
-      setPrediction(realTimePrediction);
-      setLastUpdate(new Date());
+      // Only update if the prediction actually changed
+      setPrediction((prev) => {
+        if (
+          !prev ||
+          prev.prediction !== realTimePrediction.prediction ||
+          prev.confidence !== realTimePrediction.confidence ||
+          prev.status !== realTimePrediction.status
+        ) {
+          setLastUpdate(new Date());
+          return realTimePrediction;
+        }
+        return prev;
+      });
     }
   }, [realTimePrediction]);
 
