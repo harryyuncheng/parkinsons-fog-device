@@ -237,6 +237,39 @@ def reset_predictor():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/models', methods=['GET'])
+def list_models():
+    """List all available .pth models in the models directory."""
+    models_dir = 'models'
+    try:
+        files = os.listdir(models_dir)
+        model_files = [f for f in files if f.endswith('.pth')]
+        return jsonify({'models': model_files})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/switch_model', methods=['POST'])
+def switch_model():
+    """Switch the active prediction model."""
+    global predictor_initialized
+    data = request.get_json()
+    model_name = data.get('model')
+
+    if not model_name:
+        return jsonify({'error': 'Model name not provided'}), 400
+
+    model_path = os.path.join('models', model_name)
+    if not os.path.exists(model_path):
+        return jsonify({'error': 'Model not found'}), 404
+
+    print(f"Attempting to switch model to: {model_path}")
+    predictor_initialized = initialize_predictor(model_path)
+    
+    if predictor_initialized:
+        return jsonify({'status': 'success', 'message': f'Model switched to {model_name}'})
+    else:
+        return jsonify({'error': 'Failed to switch model'}), 500
+
 @socketio.on('connect')
 def handle_connect():
     print('🔌 Client connected to Flask backend WebSocket')

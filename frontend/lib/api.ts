@@ -220,6 +220,38 @@ export const api = {
     }
   },
 
+  async getModels(): Promise<ApiResponse<{ models: string[] }>> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/models`);
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
+  async switchModel(model: string): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/switch_model`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model }),
+      });
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+
   // Model Training endpoint (placeholder for future backend integration)
   async trainModel(sessionIds: string[]): Promise<
     ApiResponse<{

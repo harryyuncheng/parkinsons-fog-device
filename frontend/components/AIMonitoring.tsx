@@ -1,9 +1,15 @@
-import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Brain, RotateCcw, AlertTriangle } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 interface PredictionData {
   prediction: string;
@@ -17,6 +23,80 @@ interface PredictionData {
   buffer_size: number;
   status: string;
 }
+
+interface ModelSelectorProps {
+  onModelSelect: (model: string) => void;
+  initialModel?: string;
+}
+
+const ModelSelector: React.FC<ModelSelectorProps> = ({ onModelSelect }) => {
+  const [models, setModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await api.getModels();
+        if (response.status === "success" && response.data) {
+          setModels(response.data.models);
+          // Select the first model by default
+          if (response.data.models.length > 0) {
+            setSelectedModel(response.data.models[0]);
+            onModelSelect(response.data.models[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching models:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, [onModelSelect]);
+
+  const handleSelect = async (model: string) => {
+    setSelectedModel(model);
+    try {
+      await api.switchModel(model);
+      onModelSelect(model);
+    } catch (error) {
+      console.error("Error switching model:", error);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Select Model</CardTitle>
+        <CardDescription>Choose a model for FOG detection.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p>Loading models...</p>
+        ) : (
+          <div className="flex flex-col space-y-2 h-36 overflow-y-auto pb-2 pr-2">
+            {models.map((model) => (
+              <Button
+                key={model}
+                variant="outline"
+                className={
+                  selectedModel === model
+                    ? "bg-stone-100 hover:bg-stone-100"
+                    : "hover:bg-stone-50"
+                }
+                onClick={() => handleSelect(model)}
+              >
+                {model.replace(".pth", "")}
+              </Button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 interface AIMonitoringProps {
   isConnected: boolean;
@@ -251,6 +331,7 @@ export default function AIMonitoring({
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const prevPredictionRef = useRef<PredictionData | null>(null);
+  const [currentModel, setCurrentModel] = useState<string>("");
 
   // Use real-time prediction if provided, otherwise poll manually
   useEffect(() => {
@@ -449,6 +530,9 @@ export default function AIMonitoring({
           )}
         </CardContent>
       </Card>
+
+      {/* Model Selector */}
+      <ModelSelector onModelSelect={setCurrentModel} />
 
       {/* Instructions */}
       <Card>
