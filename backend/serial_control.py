@@ -91,7 +91,10 @@ def get_serial_controller():
 def process_prediction_for_serial(prediction_result):
     """Process prediction and send serial command"""
     if serial_controller and 'prediction' in prediction_result:
-        serial_controller.process_state(prediction_result['prediction'])
+        prediction = prediction_result['prediction']
+        command = 'p' if prediction == 'freezing' else 's'
+        serial_controller.process_state(command)
+        print(f"📡 Sent command to serial controller: {command}")  # Log the actual command sent
 
 def send_state_to_serial(state):
     """Send state directly to serial device"""
@@ -101,16 +104,28 @@ def send_state_to_serial(state):
 # Test script
 if __name__ == "__main__":
     print("🧪 Testing Serial Controller...")
-    
+
+    # Initialize the serial controller
     if initialize_serial_controller('/dev/cu.usbserial-0001', 115200):
-        # Test different states
-        test_states = ['standing', 'walking', 'freezing', 'standing', 'freezing']
-        
-        for state in test_states:
-            print(f"\n--- Testing: {state} ---")
-            send_state_to_serial(state)
-            time.sleep(2)
-        
-        print(f"\n📋 Status: {serial_controller.get_status()}")
+        print("✅ Serial controller initialized successfully")
+
+        # Test sending commands
+        test_commands = ['p', 's', 'p', 's', 's']
+        for command in test_commands:
+            print(f"--- Sending command: {command} ---")
+            success = serial_controller.send_command(command)
+            if success:
+                print(f"✅ Command '{command}' sent successfully")
+            else:
+                print(f"❌ Failed to send command '{command}'")
+            time.sleep(1)
+
+        # Check controller status
+        status = serial_controller.get_status()
+        print(f"📋 Serial Controller Status: {status}")
+
+        # Disconnect the serial controller
+        serial_controller.disconnect()
+        print("🔌 Serial controller disconnected")
     else:
         print("❌ Could not initialize serial controller")

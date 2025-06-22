@@ -80,11 +80,11 @@ class FOGPredictor:
         self.id_to_label = {v: k for k, v in self.label_map.items()}
         
         # Sliding window buffer for real-time data
-        self.data_buffer = deque(maxlen=sequence_length)
+        self.data_buffer = deque(maxlen=256)  # Original buffer size
         self.buffer_lock = threading.Lock()
-        
+
         # Prediction smoothing
-        self.prediction_history = deque(maxlen=5)  # Last 5 predictions for smoothing
+        self.prediction_history = deque(maxlen=5)  # Original smoothing window
         
         print(f"✅ FOG Predictor initialized on {self.device}")
         print(f"📊 Label mapping: {self.label_map}")
@@ -257,4 +257,4 @@ def initialize_predictor(model_path='models/fog_classifier_20250622_041238.pth')
 
 def get_predictor():
     """Get the global predictor instance"""
-    return fog_predictor 
+    return fog_predictor

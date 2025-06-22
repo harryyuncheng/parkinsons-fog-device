@@ -1,3 +1,10 @@
 .DS_Store
 backend/venv
 backend/pycache
+backend/__pycache__
+backend/venv
+frontend/node_modules
+frontend/dist
+frontend/.cache
+frontend/.next
+venv

@@ -8,8 +8,8 @@ import threading
 import time
 import csv
 import os
+import serial
 from fog_predictor import initialize_predictor, get_predictor
-from serial_controller import initialize_serial_controller, process_prediction_for_serial
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -51,14 +51,6 @@ if predictor_initialized:
     print("✅ FOG predictor ready for real-time monitoring!")
 else:
     print("❌ FOG predictor failed to initialize")
-
-# Initialize Serial Controller for device communication
-print("📡 Initializing Serial Controller...")
-serial_initialized = initialize_serial_controller('/dev/cu.usbserial-0001', 115200)
-if serial_initialized:
-    print("✅ Serial controller ready for device communication!")
-else:
-    print("❌ Serial controller failed to initialize - check device connection")
 
 def store_imu_data(data, label='standing'):
     """Store IMU data in database"""
@@ -242,33 +234,6 @@ def reset_predictor():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/serial_status', methods=['GET'])
-def get_serial_status():
-    """Get serial controller status"""
-    from serial_controller import get_serial_controller
-    controller = get_serial_controller()
-    if controller:
-        return jsonify(controller.get_status())
-    else:
-        return jsonify({'error': 'Serial controller not initialized'}), 500
-
-@app.route('/serial_reconnect', methods=['POST'])
-def reconnect_serial():
-    """Reconnect serial controller with optional new settings"""
-    data = request.json if request.json else {}
-    port = data.get('port', '/dev/cu.usbserial-0001')
-    baudrate = data.get('baudrate', 115200)
-    
-    try:
-        # Re-initialize with new settings
-        serial_initialized = initialize_serial_controller(port, baudrate)
-        if serial_initialized:
-            return jsonify({'status': 'success', 'message': f'Serial reconnected on {port}', 'port': port, 'baudrate': baudrate})
-        else:
-            return jsonify({'status': 'error', 'message': 'Failed to reconnect serial controller'}), 500
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
 @socketio.on('connect')
 def handle_connect():
     print('🔌 Client connected to Flask backend WebSocket')
@@ -280,26 +245,33 @@ def handle_disconnect():
 
 @socketio.on('real_imu_data')
 def handle_real_imu_data(data):
-    """Handle raw IMU data from ESP32 connector (6 sensor values only)"""
     global current_session_id, streaming, current_state
-    
+
+    print(f"🔄 Received IMU data: {data}")  # Log received data
+
     # Add data to predictor for real-time monitoring (always, regardless of recording)
     predictor = get_predictor()
     if predictor:
         try:
             predictor.add_data_point(data)
-            
+
             # Get real-time prediction
             prediction_result = predictor.predict()
-            
+            print(f"🤖 Prediction result: {prediction_result}")  # Log prediction result
+
             # Send prediction to serial device for hardware control
-            process_prediction_for_serial(prediction_result)
-            
+            command = 'p' if prediction_result['prediction'] == 'freezing' else 's'
+            success = send_command_to_serial(command)
+            if success:
+                print(f"✅ Command '{command}' sent successfully")
+            else:
+                print(f"❌ Failed to send command '{command}'")
+
             # Add prediction to data being sent to frontend
             frontend_data = data.copy()
             frontend_data['current_state'] = current_state
             frontend_data['ai_prediction'] = prediction_result
-            
+
         except Exception as e:
             print(f"❌ Error making prediction: {e}")
             frontend_data = data.copy()
@@ -309,20 +281,20 @@ def handle_real_imu_data(data):
         frontend_data = data.copy()
         frontend_data['current_state'] = current_state
         frontend_data['ai_prediction'] = None
-    
+
     # Store in database only if recording session is active
     if current_session_id and streaming:
         try:
             # Store RAW IMU data in database with current user-annotated state
             store_imu_data(data, label=current_state)
-            print(f"📤 Stored & forwarded: acc_x={data.get('acc_x')}, state={current_state}")
-            
+            print(f"📤 Stored IMU data: acc_x={data.get('acc_x')}, state={current_state}")  # Log stored data
+
         except Exception as e:
             print(f"❌ Error handling real IMU data: {e}")
     # Always log received data but don't store if no session
     elif not streaming:
-        print(f"⚠️ ESP32 data received but no recording session active")
-    
+        print(f"⚠️ ESP32 data received but no recording session active. Data: {data}")  # Log data not stored
+
     # Forward to all connected clients (including the web frontend) with prediction
     emit('imu_data', frontend_data, broadcast=True)
 
@@ -331,6 +303,40 @@ def handle_esp32_status(data):
     """Handle ESP32 connector status updates"""
     print(f"ESP32 Connector: {data}")
     emit('esp32_status', data, broadcast=True)
+
+# Hardcoded serial controller logic
+serial_connection = None
+
+def initialize_serial_connection(port='/dev/cu.usbserial-0001', baudrate=115200):
+    global serial_connection
+    try:
+        serial_connection = serial.Serial(port, baudrate)
+        time.sleep(2)  # Wait for device to reset
+        print(f"✅ Serial connected to {port}")
+    except Exception as e:
+        print(f"❌ Serial connection failed: {e}")
+        serial_connection = None
+
+def send_command_to_serial(command):
+    if not serial_connection or not serial_connection.is_open:
+        print("❌ Serial connection not available")
+        return False
+
+    try:
+        serial_connection.write(f"{command}\n".encode())
+        print(f"📡 Sent: {command}")
+        return True
+    except Exception as e:
+        print(f"❌ Send error: {e}")
+        return False
+
+# Initialize serial connection
+print("🔧 Initializing serial connection...")
+initialize_serial_connection()
+if serial_connection and serial_connection.is_open:
+    print("✅ Serial connection successfully initialized")
+else:
+    print("❌ Serial connection failed during initialization")
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080, debug=True)

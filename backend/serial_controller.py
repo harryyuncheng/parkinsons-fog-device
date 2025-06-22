@@ -91,7 +91,13 @@ def get_serial_controller():
 def process_prediction_for_serial(prediction_result):
     """Process prediction and send serial command"""
     if serial_controller and 'prediction' in prediction_result:
-        serial_controller.process_state(prediction_result['prediction'])
+        prediction = prediction_result['prediction']
+        command = 'p' if prediction == 'freezing' else 's'
+        success = serial_controller.send_command(command)
+        if success:
+            print(f"✅ Command '{command}' sent successfully to serial controller")
+        else:
+            print(f"❌ Failed to send command '{command}' to serial controller")
 
 def send_state_to_serial(state):
     """Send state directly to serial device"""
