@@ -151,40 +151,37 @@ export default function FreezeOfGaitMonitor() {
             state: data.current_state || "standing",
           };
 
-          // Batch all state updates together to prevent excessive re-renders
-          requestAnimationFrame(() => {
-            // Update chart data (keep last 50 points)
-            setData((prev) => {
-              const newData = [...prev, newPoint].slice(-50);
-              console.log(
-                "📈 Updated chart data, total points:",
-                newData.length,
-                "latest point:",
-                newPoint
-              );
-              return newData;
-            });
-
-            setCurrentState(data.current_state || "standing");
-            setSampleCount((prev) => prev + 1);
-
-            // Update AI prediction data if available
-            if (data.ai_prediction) {
-              const newPrediction = data.ai_prediction as PredictionData;
-              setAiPrediction((prev: PredictionData | undefined) => {
-                // Only update if the prediction actually changed to prevent excessive re-renders
-                if (
-                  !prev ||
-                  prev.prediction !== newPrediction.prediction ||
-                  prev.confidence !== newPrediction.confidence ||
-                  prev.status !== newPrediction.status
-                ) {
-                  return newPrediction;
-                }
-                return prev;
-              });
-            }
+          // Update chart data immediately for smooth streaming
+          setData((prev) => {
+            const newData = [...prev, newPoint].slice(-50);
+            console.log(
+              "📈 Updated chart data, total points:",
+              newData.length,
+              "latest point:",
+              newPoint
+            );
+            return newData;
           });
+
+          setCurrentState(data.current_state || "standing");
+          setSampleCount((prev) => prev + 1);
+
+          // Update AI prediction data if available
+          if (data.ai_prediction) {
+            const newPrediction = data.ai_prediction as PredictionData;
+            setAiPrediction((prev: PredictionData | undefined) => {
+              // Only update if the prediction actually changed to prevent excessive re-renders
+              if (
+                !prev ||
+                prev.prediction !== newPrediction.prediction ||
+                prev.confidence !== newPrediction.confidence ||
+                prev.status !== newPrediction.status
+              ) {
+                return newPrediction;
+              }
+              return prev;
+            });
+          }
         };
 
         const handleStateAnnotation = (data: {

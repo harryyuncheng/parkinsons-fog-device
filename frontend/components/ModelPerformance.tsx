@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Progress } from "./ui/progress";
 
 const ModelPerformance = () => {
   const [animationProgress, setAnimationProgress] = useState(0);
@@ -263,7 +262,7 @@ const ModelPerformance = () => {
         <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              🔬 Model Architecture
+              Model Architecture
               <Badge variant="secondary">CNN-LSTM Hybrid</Badge>
             </CardTitle>
           </CardHeader>
@@ -285,7 +284,7 @@ const ModelPerformance = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              🎯 Classification Performance
+              Classification Performance
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -301,21 +300,36 @@ const ModelPerformance = () => {
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
                     <div className="text-gray-600">Precision</div>
-                    <Progress value={cls.precision * 100} className="h-2" />
+                    <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-full transition-all duration-500"
+                        style={{ width: `${cls.precision * 100}%` }}
+                      />
+                    </div>
                     <div className="text-xs text-right mt-1">
                       {(cls.precision * 100).toFixed(1)}%
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-600">Recall</div>
-                    <Progress value={cls.recall * 100} className="h-2" />
+                    <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-gray-500 to-gray-600 rounded-full transition-all duration-500"
+                        style={{ width: `${cls.recall * 100}%` }}
+                      />
+                    </div>
                     <div className="text-xs text-right mt-1">
                       {(cls.recall * 100).toFixed(1)}%
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-600">F1-Score</div>
-                    <Progress value={cls.f1 * 100} className="h-2" />
+                    <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-gray-600 to-gray-700 rounded-full transition-all duration-500"
+                        style={{ width: `${cls.f1 * 100}%` }}
+                      />
+                    </div>
                     <div className="text-xs text-right mt-1">
                       {(cls.f1 * 100).toFixed(1)}%
                     </div>
@@ -330,7 +344,7 @@ const ModelPerformance = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              📊 Training Data Distribution
+              Training Data Distribution
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -345,8 +359,11 @@ const ModelPerformance = () => {
                     {data.count.toLocaleString()}
                   </span>
                 </div>
-                <div className="relative">
-                  <Progress value={data.percentage} className="h-3" />
+                <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-gray-500 to-gray-600 rounded-full transition-all duration-500"
+                    style={{ width: `${data.percentage}%` }}
+                  />
                   <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
                     {data.percentage.toFixed(1)}%
                   </div>
@@ -382,7 +399,7 @@ const ModelPerformance = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            📈 Training Progress Overview
+            Training Progress Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
