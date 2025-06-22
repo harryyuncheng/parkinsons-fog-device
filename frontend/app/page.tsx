@@ -33,10 +33,12 @@ import {
   UserCheck,
   CheckCircle,
   X,
-  Brain,
   Info,
+  Brain,
 } from "lucide-react";
 import AIMonitoring from "@/components/AIMonitoring";
+import ModelPerformance from "@/components/ModelPerformance";
+import SessionHistory from "@/components/SessionHistory";
 
 interface DataPoint {
   time: string;
@@ -63,7 +65,7 @@ interface PredictionData {
 }
 
 export default function FreezeOfGaitMonitor() {
-  const [activeTab, setActiveTab] = useState("recording");
+  const [activeTab, setActiveTab] = useState("performance");
   const [isConnected, setIsConnected] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentState, setCurrentState] = useState("standing");
@@ -78,7 +80,7 @@ export default function FreezeOfGaitMonitor() {
     message: string;
     show: boolean;
   }>({ type: "success", message: "", show: false });
-  const [aiPrediction, setAiPrediction] = useState<any>(null);
+  const [aiPrediction, setAiPrediction] = useState<PredictionData | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
 
   // Show notification function
@@ -162,7 +164,7 @@ export default function FreezeOfGaitMonitor() {
               );
               return newData;
             });
-            
+
             setCurrentState(data.current_state || "standing");
             setSampleCount((prev) => prev + 1);
 
@@ -355,9 +357,9 @@ export default function FreezeOfGaitMonitor() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <h1 className="text-3xl font-bold text-gray-900">
+            {/* <h1 className="text-3xl font-bold text-gray-900">
               Parkinson's Freeze of Gait Monitor
-            </h1>
+            </h1> */}
             <div className="relative">
               <button
                 onClick={() => setShowInstructions(!showInstructions)}
@@ -368,7 +370,7 @@ export default function FreezeOfGaitMonitor() {
               >
                 <Info className="w-4 h-4 text-gray-400" />
               </button>
-              
+
               {/* Instructions Tooltip */}
               {showInstructions && (
                 <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
@@ -376,9 +378,13 @@ export default function FreezeOfGaitMonitor() {
                   <div className="text-sm space-y-2 text-gray-700">
                     <div>• Make sure ESP32 is connected and sending data</div>
                     <div>• Backend must be running on port 6000</div>
-                    <div>• Press W/S/F keys to annotate states while recording</div>
+                    <div>
+                      • Press W/S/F keys to annotate states while recording
+                    </div>
                     <div>• All real ESP32 data is saved to database</div>
-                    <div>• CSV files saved automatically to backend/data/ directory</div>
+                    <div>
+                      • CSV files saved automatically to backend/data/ directory
+                    </div>
                   </div>
                 </div>
               )}
@@ -416,11 +422,24 @@ export default function FreezeOfGaitMonitor() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="recording" className="cursor-pointer">Real-time Recording</TabsTrigger>
-            <TabsTrigger value="monitoring" className="cursor-pointer">AI Monitor</TabsTrigger>
-            <TabsTrigger value="sessions" className="cursor-pointer">Session History</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="performance" className="cursor-pointer">
+              Model Performance
+            </TabsTrigger>
+            <TabsTrigger value="recording" className="cursor-pointer">
+              Real-time Recording
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="cursor-pointer">
+              AI Monitor
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="cursor-pointer">
+              Session History
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="performance" className="space-y-6">
+            <ModelPerformance />
+          </TabsContent>
 
           <TabsContent value="recording" className="space-y-6">
             {/* Control Panel */}
@@ -631,68 +650,11 @@ export default function FreezeOfGaitMonitor() {
           </TabsContent>
 
           <TabsContent value="sessions" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="w-5 h-5" />
-                  <span>Recording Sessions</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {sessions.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No recording sessions found. Start recording to create your
-                    first session.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sessions.map((session) => (
-                      <div
-                        key={session.session_id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            {session.session_id}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {session.sample_count} samples •{" "}
-                            {session.start_time &&
-                            !isNaN(new Date(session.start_time).getTime())
-                              ? new Date(session.start_time).toLocaleString()
-                              : "Unknown start time"}{" "}
-                            to{" "}
-                            {session.end_time &&
-                            !isNaN(new Date(session.end_time).getTime())
-                              ? new Date(session.end_time).toLocaleString()
-                              : "Unknown end time"}
-                          </div>
-                          <div className="flex space-x-4 text-sm">
-                            <span className="text-green-600">
-                              Walking: {session.walking_count}
-                            </span>
-                            <span className="text-blue-600">
-                              Standing: {session.standing_count}
-                            </span>
-                            <span className="text-red-600">
-                              Freezing: {session.freezing_count}
-                            </span>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => saveSessionData(session.session_id)}
-                          variant="outline"
-                          size="sm"
-                          className="cursor-pointer"
-                        >
-                          Save CSV
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <SessionHistory
+              sessions={sessions}
+              onSaveSession={saveSessionData}
+              onShowNotification={showNotification}
+            />
           </TabsContent>
         </Tabs>
       </div>

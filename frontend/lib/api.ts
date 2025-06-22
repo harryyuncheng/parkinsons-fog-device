@@ -219,6 +219,43 @@ export const api = {
       };
     }
   },
+
+  // Model Training endpoint (placeholder for future backend integration)
+  async trainModel(sessionIds: string[]): Promise<
+    ApiResponse<{
+      message: string;
+      training_id: string;
+      selected_sessions: string[];
+      status: string;
+    }>
+  > {
+    try {
+      // TODO: Replace with actual backend endpoint when implemented
+      const response = await fetch(`${BACKEND_URL}/train_model`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_ids: sessionIds,
+          model_config: {
+            sequence_length: 128,
+            overlap: 0.5,
+            learning_rate: 0.001,
+            batch_size: 32,
+            epochs: 100,
+          },
+        }),
+      });
+      const data = await response.json();
+      return { status: "success", data };
+    } catch (error) {
+      return {
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
 };
 
 // Socket event handlers

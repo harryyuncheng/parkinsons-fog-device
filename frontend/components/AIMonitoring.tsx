@@ -1,16 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Brain,
-  RotateCcw,
-  Activity,
-  CheckCircle,
-  AlertTriangle,
-  User,
-} from "lucide-react";
+import { Brain, RotateCcw, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface PredictionData {
@@ -26,43 +18,263 @@ interface PredictionData {
   status: string;
 }
 
-interface BufferStatus {
-  current_size: number;
-  required_size: number;
-  fill_percentage: number;
-  ready_for_prediction: boolean;
-}
-
 interface AIMonitoringProps {
   isConnected: boolean;
   realTimePrediction?: PredictionData;
 }
+
+// Single Animated Stick Figure Component that changes based on state
+const AnimatedStickFigure = ({ currentState }: { currentState: string }) => {
+  const [walkStep, setWalkStep] = useState(0);
+  const [shake, setShake] = useState(0);
+
+  useEffect(() => {
+    if (currentState === "walking") {
+      const interval = setInterval(() => {
+        setWalkStep((prev) => (prev + 1) % 4);
+      }, 400);
+      return () => clearInterval(interval);
+    }
+  }, [currentState]);
+
+  useEffect(() => {
+    if (currentState === "freezing") {
+      const interval = setInterval(() => {
+        setShake((prev) => (prev + 1) % 8);
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [currentState]);
+
+  // Animation configurations for walking
+  const legPositions = [
+    { left: { x2: 30, y2: 105 }, right: { x2: 50, y2: 105 } }, // neutral
+    { left: { x2: 35, y2: 105 }, right: { x2: 45, y2: 105 } }, // left forward
+    { left: { x2: 30, y2: 105 }, right: { x2: 50, y2: 105 } }, // neutral
+    { left: { x2: 25, y2: 105 }, right: { x2: 55, y2: 105 } }, // right forward
+  ];
+
+  const armPositions = [
+    { left: { x2: 25, y2: 50 }, right: { x2: 55, y2: 50 } },
+    { left: { x2: 20, y2: 45 }, right: { x2: 60, y2: 55 } },
+    { left: { x2: 25, y2: 50 }, right: { x2: 55, y2: 50 } },
+    { left: { x2: 30, y2: 55 }, right: { x2: 50, y2: 45 } },
+  ];
+
+  // Color and animation settings based on state
+  const getStateConfig = () => {
+    switch (currentState) {
+      case "walking":
+        return {
+          color: "#22c55e",
+          textColor: "text-green-600",
+          label: "Walking",
+        };
+      case "freezing":
+        return {
+          color: "#ef4444",
+          textColor: "text-red-600",
+          label: "Freezing",
+        };
+      case "standing":
+      default:
+        return {
+          color: "#3b82f6",
+          textColor: "text-blue-600",
+          label: "Standing",
+        };
+    }
+  };
+
+  const config = getStateConfig();
+  const shakeOffset =
+    currentState === "freezing" ? (shake % 2 === 0 ? 1 : -1) : 0;
+
+  return (
+    <div className="transition-all duration-300 scale-110">
+      <svg width="120" height="160" viewBox="0 0 120 160" className="mx-auto">
+        {/* Head */}
+        <circle
+          cx={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          cy={20 + (currentState === "freezing" ? shakeOffset * 0.5 : 0)}
+          r="12"
+          fill={config.color}
+        />
+
+        {/* Body */}
+        <line
+          x1={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y1={32 + (currentState === "freezing" ? shakeOffset * 0.5 : 0)}
+          x2={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y2={90 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
+          stroke={config.color}
+          strokeWidth="4"
+        />
+
+        {/* Arms */}
+        <line
+          x1={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y1={45 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
+          x2={
+            currentState === "walking"
+              ? 40 + armPositions[walkStep].left.x2 - 25
+              : 40 + (currentState === "freezing" ? shakeOffset * 2 : 0)
+          }
+          y2={
+            currentState === "walking"
+              ? armPositions[walkStep].left.y2 + 15
+              : 65 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          stroke={config.color}
+          strokeWidth="3"
+          className="transition-all duration-200"
+        />
+        <line
+          x1={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y1={45 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
+          x2={
+            currentState === "walking"
+              ? 40 + armPositions[walkStep].right.x2 - 25
+              : 80 + (currentState === "freezing" ? shakeOffset * 2 : 0)
+          }
+          y2={
+            currentState === "walking"
+              ? armPositions[walkStep].right.y2 + 15
+              : 65 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          stroke={config.color}
+          strokeWidth="3"
+          className="transition-all duration-200"
+        />
+
+        {/* Legs */}
+        <line
+          x1={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y1={90 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
+          x2={
+            currentState === "walking"
+              ? 30 + legPositions[walkStep].left.x2 - 30
+              : 45 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y2={
+            currentState === "walking"
+              ? legPositions[walkStep].left.y2 + 25
+              : 130
+          }
+          stroke={config.color}
+          strokeWidth="4"
+          className="transition-all duration-200"
+        />
+        <line
+          x1={60 + (currentState === "freezing" ? shakeOffset : 0)}
+          y1={90 + (currentState === "freezing" ? shakeOffset * 0.3 : 0)}
+          x2={
+            currentState === "walking"
+              ? 30 + legPositions[walkStep].right.x2 - 30
+              : 75 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y2={
+            currentState === "walking"
+              ? legPositions[walkStep].right.y2 + 25
+              : 130
+          }
+          stroke={config.color}
+          strokeWidth="4"
+          className="transition-all duration-200"
+        />
+
+        {/* Feet */}
+        <line
+          x1={
+            currentState === "walking"
+              ? legPositions[walkStep].left.x2
+              : 45 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y1="130"
+          x2={
+            currentState === "walking"
+              ? legPositions[walkStep].left.x2 - 8
+              : 37 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y2="130"
+          stroke={config.color}
+          strokeWidth="3"
+        />
+        <line
+          x1={
+            currentState === "walking"
+              ? legPositions[walkStep].right.x2 + 25
+              : 75 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y1="130"
+          x2={
+            currentState === "walking"
+              ? legPositions[walkStep].right.x2 + 33
+              : 83 + (currentState === "freezing" ? shakeOffset : 0)
+          }
+          y2="130"
+          stroke={config.color}
+          strokeWidth="3"
+        />
+
+        {/* Tremor particles for freezing state */}
+        {currentState === "freezing" && (
+          <>
+            <circle
+              cx={60 + shakeOffset * 3}
+              cy={75}
+              r="1.5"
+              fill={config.color}
+              opacity="0.6"
+            />
+            <circle
+              cx={60 - shakeOffset * 2}
+              cy={55}
+              r="1.5"
+              fill={config.color}
+              opacity="0.6"
+            />
+            <circle
+              cx={60 + shakeOffset * 2}
+              cy={95}
+              r="1.5"
+              fill={config.color}
+              opacity="0.6"
+            />
+          </>
+        )}
+      </svg>
+      <div className={`text-center text-lg font-bold mt-3 ${config.textColor}`}>
+        {config.label}
+      </div>
+    </div>
+  );
+};
 
 export default function AIMonitoring({
   isConnected,
   realTimePrediction,
 }: AIMonitoringProps) {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
-  const [bufferStatus, setBufferStatus] = useState<BufferStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const prevPredictionRef = useRef<PredictionData | null>(null);
 
   // Use real-time prediction if provided, otherwise poll manually
   useEffect(() => {
     if (realTimePrediction) {
-      // Only update if the prediction actually changed
-      setPrediction((prev) => {
-        if (
-          !prev ||
-          prev.prediction !== realTimePrediction.prediction ||
-          prev.confidence !== realTimePrediction.confidence ||
-          prev.status !== realTimePrediction.status
-        ) {
-          setLastUpdate(new Date());
-          return realTimePrediction;
-        }
-        return prev;
-      });
+      const prev = prevPredictionRef.current;
+      const hasChanged =
+        !prev ||
+        prev.prediction !== realTimePrediction.prediction ||
+        prev.confidence !== realTimePrediction.confidence ||
+        prev.status !== realTimePrediction.status;
+
+      if (hasChanged) {
+        setPrediction(realTimePrediction);
+        setLastUpdate(new Date());
+        prevPredictionRef.current = realTimePrediction;
+      }
     }
   }, [realTimePrediction]);
 
@@ -74,7 +286,6 @@ export default function AIMonitoring({
           const result = await api.getPrediction();
           if (result.status === "success") {
             setPrediction(result.data.prediction);
-            setBufferStatus(result.data.buffer_status);
             setLastUpdate(new Date());
           }
         } catch (error) {
@@ -93,36 +304,11 @@ export default function AIMonitoring({
       if (result.status === "success") {
         console.log("Buffer reset successfully");
         setPrediction(null);
-        setBufferStatus(null);
       }
     } catch (error) {
       console.error("Error resetting buffer:", error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStateColor = (state: string) => {
-    switch (state) {
-      case "walking":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "freezing":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "standing":
-      default:
-        return "bg-blue-100 text-blue-800 border-blue-200";
-    }
-  };
-
-  const getStateIcon = (state: string) => {
-    switch (state) {
-      case "walking":
-        return <User className="w-5 h-5" />;
-      case "freezing":
-        return <AlertTriangle className="w-5 h-5" />;
-      case "standing":
-      default:
-        return <Activity className="w-5 h-5" />;
     }
   };
 
@@ -176,70 +362,42 @@ export default function AIMonitoring({
         </Card>
       )}
 
-      {/* Buffer Status */}
-      {bufferStatus && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Data Buffer Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Buffer Fill</span>
-                  <span>
-                    {bufferStatus.current_size}/{bufferStatus.required_size}{" "}
-                    samples
-                  </span>
-                </div>
-                <Progress
-                  value={bufferStatus.fill_percentage}
-                  className="h-2"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                {bufferStatus.ready_for_prediction ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                ) : (
-                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                )}
-                <span className="text-sm">
-                  {bufferStatus.ready_for_prediction
-                    ? "Ready for prediction"
-                    : "Collecting data..."}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Prediction */}
+      {/* Current Prediction with Stick Figures */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Current AI Prediction</CardTitle>
+          <CardTitle className="text-lg text-center">
+            Current AI Prediction
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {prediction ? (
             <div className="space-y-6">
-              {/* Main prediction */}
-              <div className="text-center">
-                <Badge
-                  className={`${getStateColor(
-                    prediction.prediction
-                  )} text-lg px-4 py-2 flex items-center space-x-2 justify-center w-fit mx-auto`}
-                >
-                  {getStateIcon(prediction.prediction)}
-                  <span className="capitalize font-bold">
-                    {prediction.prediction}
-                  </span>
-                </Badge>
-                <div
-                  className={`text-sm mt-2 font-medium ${getConfidenceColor(
-                    prediction.confidence
-                  )}`}
-                >
-                  Confidence: {(prediction.confidence * 100).toFixed(1)}%
+              {/* Stick Figure Display */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6">
+                <div className="flex justify-center">
+                  <AnimatedStickFigure currentState={prediction.prediction} />
+                </div>
+
+                {/* Confidence display */}
+                <div className="text-center mt-4">
+                  <div
+                    className={`text-lg font-bold ${getConfidenceColor(
+                      prediction.confidence
+                    )}`}
+                  >
+                    Confidence: {(prediction.confidence * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    {prediction.prediction === "freezing" &&
+                      prediction.confidence > 0.8 &&
+                      "🚨 High confidence freeze detected!"}
+                    {prediction.prediction === "walking" &&
+                      prediction.confidence > 0.8 &&
+                      "✅ Normal walking detected"}
+                    {prediction.prediction === "standing" &&
+                      prediction.confidence > 0.8 &&
+                      "🧍 Standing position detected"}
+                  </div>
                 </div>
               </div>
 

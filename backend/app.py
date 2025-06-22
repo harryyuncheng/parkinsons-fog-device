@@ -10,7 +10,6 @@ import csv
 import os
 import serial
 from fog_predictor import initialize_predictor, get_predictor
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
 CORS(app)  # Enable CORS for Next.js frontend
@@ -43,8 +42,6 @@ if not os.path.exists(DATA_DIR):
 streaming = False
 current_session_id = None
 current_state = 'standing'  # Track current state for labeling
-previous_prediction = None  # Buffer to track previous AI prediction state
-prev_prev_prediction = None  # Buffer to track prediction from 2 steps ago
 
 # Initialize FOG predictor
 print("🤖 Initializing FOG predictor...")
@@ -247,7 +244,7 @@ def handle_disconnect():
 
 @socketio.on('real_imu_data')
 def handle_real_imu_data(data):
-    global current_session_id, streaming, current_state, previous_prediction, prev_prev_prediction
+    global current_session_id, streaming, current_state
 
     print(f"🔄 Received IMU data: {data}")  # Log received data
 
@@ -263,29 +260,11 @@ def handle_real_imu_data(data):
             print(f"🤖 Prediction result: {prediction_result}")  # Log prediction result
 
             # Send prediction to serial device for hardware control
-            # Only send 'p' if current, previous AND prev_prev predictions are ALL 'freezing'
-            if (current_prediction == 'freezing' and 
-                previous_prediction == 'freezing' and 
-                prev_prev_prediction == 'freezing'):
+            if current_prediction == 'freezing':
                 command = 'p'
-                print(f"🔥 Three consecutive freezing predictions - sending freeze alert!")
+                print(f"🔥 Freezing detected - sending freeze alert!")
             else:
                 command = 's'
-                # Count consecutive freezing predictions for logging
-                # freezing_count = 0
-                # if current_prediction == 'freezing':
-                #     freezing_count += 1
-                # if previous_prediction == 'freezing':
-                #     freezing_count += 1
-                # if prev_prev_prediction == 'freezing':
-                #     freezing_count += 1
-                
-                # if freezing_count > 0:
-                #     print(f"⚠️ {freezing_count}/3 consecutive freezing predictions - waiting for confirmation...")
-
-            # Update prediction buffers (shift the history)
-            prev_prev_prediction = previous_prediction
-            previous_prediction = current_prediction
 
             success = send_command_to_serial(command)
             if success:
