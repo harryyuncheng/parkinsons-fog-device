@@ -47,23 +47,13 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available()) {
-    char current_receive = Serial.read();
-
-    if (current_receive == receive) {
-      count_consecutive_state++;
-    } else {
-      receive = current_receive;
-      count_consecutive_state = 1; 
-    }
-
-    if (count_consecutive_state >= 3) {
-      if (receive == 'p') {
-        poke_state = true;
-      } else if (receive == 's') {
-        poke_state = false;
-        actuator_servo.write(REST_ANGLE);
-      }
+  if (Serial.available()){
+    receive = Serial.read();
+    if (receive == 'p') {
+      poke_state = true;
+    } else if (receive == 's') {
+      poke_state = false;
+      actuator_servo.write(REST_ANGLE);
     }
   }
   if (poke_state){
