@@ -9,7 +9,10 @@ import time
 import csv
 import os
 import serial
-from fog_predictor import initialize_predictor, get_predictor
+import signal
+import sys
+import atexit
+from fog_predictor import initialize_predictor, get_predictor, cleanup_predictor
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'fog_detection_secret_key'
@@ -323,7 +326,7 @@ def send_command_to_serial(command):
         return False
 
     try:
-        serial_connection.write(f"{command}\n".encode())
+        serial_connection.write(f"{command}".encode())
         print(f"📡 Sent: {command}")
         return True
     except Exception as e:
@@ -337,6 +340,28 @@ if serial_connection and serial_connection.is_open:
     print("✅ Serial connection successfully initialized")
 else:
     print("❌ Serial connection failed during initialization")
+
+def cleanup():
+    """Clean up resources on app shutdown"""
+    print("🧹 Cleaning up resources...")
+    try:
+        cleanup_predictor()
+        if serial_connection and serial_connection.is_open:
+            serial_connection.close()
+        print("✅ Resources cleaned up successfully")
+    except Exception as e:
+        print(f"⚠️ Error during cleanup: {e}")
+
+# Register cleanup function to be called on exit
+atexit.register(cleanup)
+
+# Handle SIGINT (Ctrl+C) gracefully
+def signal_handler(sig, frame):
+    print("\n🛑 Received interrupt signal, shutting down gracefully...")
+    cleanup()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080, debug=True)

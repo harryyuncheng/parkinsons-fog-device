@@ -1,9 +1,21 @@
+import os
 import torch
 import torch.nn as nn
 import numpy as np
 from collections import deque
 import threading
 import time
+
+# Fix OMP threading issues
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+
+# Force PyTorch to use single thread to prevent resource exhaustion
+torch.set_num_threads(1)
+
+# Disable multiprocessing for PyTorch to prevent resource leaks
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 class FOGClassifier(nn.Module):
     """CNN-LSTM model for FOG classification - same as training"""
@@ -241,6 +253,28 @@ class FOGPredictor:
             self.data_buffer.clear()
             self.prediction_history.clear()
         print("🔄 Prediction buffer reset")
+    
+    def cleanup(self):
+        """Clean up resources"""
+        try:
+            with self.buffer_lock:
+                self.data_buffer.clear()
+                self.prediction_history.clear()
+            
+            # Clear model from GPU memory if using CUDA
+            if hasattr(self, 'model') and self.model is not None:
+                del self.model
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                
+            print("🧹 FOG Predictor resources cleaned up")
+        except Exception as e:
+            print(f"⚠️ Error during cleanup: {e}")
 
 # Global predictor instance
 fog_predictor = None
@@ -249,6 +283,10 @@ def initialize_predictor(model_path='models/fog_classifier_20250622_041238.pth')
     """Initialize the global FOG predictor"""
     global fog_predictor
     try:
+        # Clean up existing predictor if any
+        if fog_predictor is not None:
+            fog_predictor.cleanup()
+        
         fog_predictor = FOGPredictor(model_path)
         return True
     except Exception as e:
@@ -258,3 +296,10 @@ def initialize_predictor(model_path='models/fog_classifier_20250622_041238.pth')
 def get_predictor():
     """Get the global predictor instance"""
     return fog_predictor
+
+def cleanup_predictor():
+    """Clean up the global predictor"""
+    global fog_predictor
+    if fog_predictor is not None:
+        fog_predictor.cleanup()
+        fog_predictor = None
