@@ -19,6 +19,7 @@ ESP32 → Serial → Backend (ESP32 Connector) → Flask API → Next.js Fronten
 - **Flask API** (`app.py`) - REST endpoints and WebSocket server
 - **ESP32 Connector** (`esp32_connector.py`) - Serial bridge for real ESP32 data
 - **SQLite Database** - Stores all IMU data with 3-way classification labels
+- **PyTorch 1d-CNN + LSTM Hybrid model** - CNN extracts rich spatial features, then feeds those features to the LSTM to learn temporal patterns.
 
 ### 🖥️ Frontend (`/frontend/`)
 
