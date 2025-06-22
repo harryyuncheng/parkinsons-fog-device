@@ -2,7 +2,9 @@ Flask==3.0.0
 Flask-SocketIO==5.3.6
 Flask-CORS==4.0.0
 numpy>=1.26.0
-pyserial
-keyboard
 torch>=2.0.0
 torchvision>=0.15.0
+pyserial==3.5
+keyboard==0.13.5
+requests==2.31.0
+python-socketio[client]==5.8.0 
