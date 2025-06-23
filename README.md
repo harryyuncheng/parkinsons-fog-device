@@ -197,14 +197,6 @@ CREATE TABLE imu_data (
 - **WebSocket disconnects**: Check firewall settings
 - **Build errors**: Run `npm install` to update dependencies
 
-## Next Steps
-
-1. **Model Integration**: Add trained FOG detection models for real-time prediction
-2. **Data Analytics**: Implement statistical analysis and reporting
-3. **Cloud Storage**: Add cloud backup and sync capabilities
-4. **Mobile App**: Create companion mobile application
-5. **Multi-patient**: Add patient management and multi-session support
-
 ## Contributing
 
 1. Fork the repository
